@@ -1,0 +1,112 @@
+<?php
+defined('BASEPATH') or exit('No direct script access allowed');
+
+/*
+| -------------------------------------------------------------------------
+| URI ROUTING
+| -------------------------------------------------------------------------
+| This file lets you re-map URI requests to specific controller functions.
+|
+| Typically there is a one-to-one relationship between a URL string
+| and its corresponding controller class/method. The segments in a
+| URL normally follow this pattern:
+|
+|	example.com/class/method/id/
+|
+| In some instances, however, you may want to remap this relationship
+| so that a different class/function is called than the one
+| corresponding to the URL.
+|
+| Please see the user guide for complete details:
+|
+|	https://codeigniter.com/user_guide/general/routing.html
+|
+| -------------------------------------------------------------------------
+| RESERVED ROUTES
+| -------------------------------------------------------------------------
+|
+| There are three reserved routes:
+|
+|	$route['default_controller'] = 'welcome';
+|
+| This route indicates which controller class should be loaded if the
+| URI contains no data. In the above example, the "welcome" class
+| would be loaded.
+|
+|	$route['404_override'] = 'errors/page_missing';
+|
+| This route will tell the Router which controller/method to use if those
+| provided in the URL cannot be matched to a valid route.
+|
+|	$route['translate_uri_dashes'] = FALSE;
+|
+| This is not exactly a route, but allows you to automatically route
+| controller and method names that contain dashes. '-' isn't a valid
+| class or method name character, so it requires translation.
+| When you set this option to TRUE, it will replace ALL dashes in the
+| controller and method URI segments.
+|
+| Examples:	my-controller/index	-> my_controller/index
+|		my-controller/my-method	-> my_controller/my_method
+*/
+$route['admin'] = "admin/home";
+$route['admin/products'] = "admin/product";
+$route['seller/products'] = "seller/product";
+$route['seller/brands'] = "seller/brand";
+$route['admin/brands'] = "admin/brand";
+// Admin store management routes
+$route['admin/stores'] = "admin/stores/index";
+$route['admin/stores/'] = "admin/stores/index";
+$route['admin/stores/view-stores'] = "admin/stores/view_stores";
+$route['admin/stores/approve-store'] = "admin/stores/approve_store";
+$route['admin/stores/reject-store'] = "admin/stores/reject_store";
+$route['admin/stores/deactivate-store'] = "admin/stores/deactivate_store";
+$route['admin/stores/delete-store'] = "admin/stores/delete_store";
+// Seller store management routes - must be before any catch-all routes
+$route['seller/store'] = "seller/store/index";
+$route['seller/store/'] = "seller/store/index";
+$route['seller/store/create-store'] = "seller/store/create_store";
+$route['seller/store/create-store/'] = "seller/store/create_store";
+$route['seller/store/manage-store'] = "seller/store/index";
+$route['seller/store/manage-store/'] = "seller/store/index";
+$route['seller/store/add-store'] = "seller/store/add_store";
+$route['seller/store/add-store/'] = "seller/store/add_store";
+$route['seller/store/get-stores'] = "seller/store/get_stores";
+$route['seller/store/get-stores/'] = "seller/store/get_stores";
+$route['seller/store/delete-store'] = "seller/store/delete_store";
+$route['seller/store/delete-store/'] = "seller/store/delete_store";
+$route['seller/store/set-default-store'] = "seller/store/set_default_store";
+$route['seller/store/set-default-store/'] = "seller/store/set_default_store";
+$route['delivery_boy'] = "delivery_boy/home";
+$route['delivery-boy'] = "delivery_boy/home";
+$route['delivery-boy/(:any)'] = "delivery_boy/$1";
+
+$route['delivery-boy/(:any)/(:any)'] = "delivery_boy/$1/$2";
+$route['delivery-boy/(:any)/(:any)/(:any)'] = "delivery_boy/$1/$2/$3";
+$route['delivery-boy/(:any)/(:any)/(:any)/(:any)'] = "delivery_boy/$1/$2/$3/$4";
+$route['delivery-boy/(:any)/(:any)/(:any)/(:any)/(:any)'] = "delivery_boy/$1/$2/$3/$4/$5";
+$route['products/(:num)'] = "products/index/$1";
+$route['blogs/(:num)'] = "blogs/index/$1";
+$route['sellers/(:num)'] = "sellers/index/$1";
+// for web + application
+$route['default_controller'] = 'home';
+// for app
+// $route['default_controller'] = 'landing';
+$route['404_override'] = 'error_404';
+$route['sitemap.xml'] = 'sitemap/index';
+
+// Add routes for Shipping Companies(Admin)
+$route['admin/shipping-companies'] = 'admin/Shipping_companies';
+$route['admin/shipping-companies/(:any)'] = 'admin/Shipping_companies/$1';
+$route['admin/shipping-companies/(:any)/(:any)'] = 'admin/Shipping_companies/$1/$2';
+$route['admin/Shipping_company_privacy_policy'] = 'admin/shipping_company_privacy_policy';
+$route['admin/Shipping_company_privacy_policy/(:any)'] = 'admin/shipping_company_privacy_policy/$1';
+// Shipping Company Routes
+
+$route['shipping-company'] = "shipping_company/home";
+$route['shipping-company/(:any)'] = "shipping_company/$1";
+$route['shipping-company/(:any)/(:any)'] = "shipping_company/$1/$2";
+$route['shipping-company/(:any)/(:any)/(:any)'] = "shipping_company/$1/$2/$3";
+$route['shipping-company/(:any)/(:any)/(:any)/(:any)'] = "shipping_company/$1/$2/$3/$4";
+$route['shipping-company/(:any)/(:any)/(:any)/(:any)/(:any)'] = "shipping_company/$1/$2/$3/$4/$5";
+$route['translate_uri_dashes'] = TRUE;

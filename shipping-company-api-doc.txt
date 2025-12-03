@@ -1,0 +1,603 @@
+/*
+    Shipping Company API Documentation
+
+    For Flutter App Integration
+*/
+
+API URL -->>
+    https://yourdomain.com/shipping_company/app/v1/api/{METHOD_NAME}  - (all APIs in one file only)
+
+---------------------------------------------------------------------------
+Defined API Methods:-
+---------------------------------------------------------------------------
+
+1. login
+2. get_shipping_company_details
+3. get_orders
+4. update_order_status
+5. get_fund_transfers
+6. update_user
+7. update_fcm
+8. reset_password
+9. get_notifications
+10. verify_user
+11. get_settings
+12. get_cash_collection
+13. delete_shipping_company
+14. verify_otp
+15. resend_otp
+16. register
+17. get_zipcodes
+18. get_cities
+19. get_statistics
+20. get_payout_summary
+21. send_withdrawal_request
+22. get_withdrawal_request
+
+---------------------------------------------------------------------------
+Authentication:
+---------------------------------------------------------------------------
+
+Most endpoints require Bearer Token authentication.
+Add header: Authorization: Bearer YOUR_TOKEN
+
+Token is received in login response.
+
+Excluded routes (no auth required):
+- login
+- reset_password
+- get_notifications
+- verify_user
+- get_settings
+- register
+- get_zipcodes
+- get_cities
+- verify_otp
+- resend_otp
+
+------------------------------------------
+What parameters to be Passed?  See here >>
+------------------------------------------
+
+
+Use POST method to pass the parameters
+
+---------------------------------------------------------------------------
+1. login
+---------------------------------------------------------------------------
+    mobile: 9874565478
+    password: 12345678
+    fcm_id: FCM_ID //{ optional }
+
+    Response:
+    {
+        "error": false,
+        "message": "Logged in successfully",
+        "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+        "data": [{ user_data }]
+    }
+
+---------------------------------------------------------------------------
+2. get_shipping_company_details
+---------------------------------------------------------------------------
+    No parameters needed - uses token for user identification
+
+    Response:
+    {
+        "error": false,
+        "message": "Data retrieved successfully",
+        "data": [{ user_data }]
+    }
+
+---------------------------------------------------------------------------
+3. get_orders
+---------------------------------------------------------------------------
+    active_status: received  {awaiting,received,delivered,cancelled,processed,shipped,returned}     // optional
+    order_id: 101           // optional - get specific order
+    limit: 25               // { default - 25 } optional
+    offset: 0               // { default - 0 } optional
+    sort: id / date_added   // { default - id } optional
+    order: DESC/ASC         // { default - DESC } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Orders retrieved successfully",
+        "total": "15",
+        "awaiting": "2",
+        "received": "3",
+        "processed": "1",
+        "shipped": "2",
+        "delivered": "5",
+        "cancelled": "1",
+        "returned": "1",
+        "data": [{ order_data_with_items }]
+    }
+
+---------------------------------------------------------------------------
+4. update_order_status
+---------------------------------------------------------------------------
+    order_item_id: 1
+    status: received / processed / shipped / delivered / cancelled / returned
+    otp: value      // {required when status is delivered and OTP is enabled}
+
+    Response:
+    {
+        "error": false,
+        "message": "Status Updated Successfully",
+        "data": []
+    }
+
+---------------------------------------------------------------------------
+5. get_fund_transfers
+---------------------------------------------------------------------------
+    limit: 25               // { default - 25 } optional
+    offset: 0               // { default - 0 } optional
+    sort: id / date_added   // { default - id } optional
+    order: DESC/ASC         // { default - DESC } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Data retrieved successfully",
+        "total": "5",
+        "data": [{ fund_transfer_records }]
+    }
+
+---------------------------------------------------------------------------
+6. update_user
+---------------------------------------------------------------------------
+    username: Company Name
+    mobile: 7852347890      // {optional}
+    email: test@gmail.com   // {optional}
+    address: Address        // {optional}
+    image: FILE             // {optional} - profile image
+    // Password change (optional)
+    old: 12345
+    new: 345234
+
+    Response:
+    {
+        "error": false,
+        "message": "Profile Updated Successfully"
+    }
+
+---------------------------------------------------------------------------
+7. update_fcm
+---------------------------------------------------------------------------
+    fcm_id: FCM_ID
+    device_type: android/ios
+
+    Response:
+    {
+        "error": false,
+        "message": "FCM Updated Successfully"
+    }
+
+---------------------------------------------------------------------------
+8. reset_password
+---------------------------------------------------------------------------
+    mobile_no: 7894561235
+    new: pass@123
+
+    Response:
+    {
+        "error": false,
+        "message": "Password Reset Successfully",
+        "data": []
+    }
+
+---------------------------------------------------------------------------
+9. get_notifications
+---------------------------------------------------------------------------
+    offset: 0           // {optional}
+    limit: 10           // {optional}
+    sort: id            // {optional}
+    order: DESC/ASC     // {optional}
+
+    Response:
+    {
+        "error": false,
+        "message": "Notifications Retrieved Successfully",
+        "total": "10",
+        "data": [{ notifications }]
+    }
+
+---------------------------------------------------------------------------
+10. verify_user
+---------------------------------------------------------------------------
+    mobile: 1234567890
+    country_code: 91
+    email: test@gmail.com   // { optional }
+    is_forgot_password: 1   // { optional }
+
+    Response:
+    {
+        "error": false,
+        "message": "OTP sent successfully!"
+    }
+
+---------------------------------------------------------------------------
+11. get_settings
+---------------------------------------------------------------------------
+    type: shipping_company_privacy_policy / shipping_company_terms_conditions / currency / authentication_settings / shipping_method
+
+    Response:
+    {
+        "error": false,
+        "message": "Settings retrieved successfully",
+        "data": "setting_value",
+        "currency": "INR",
+        "system_settings": { system_settings }
+    }
+
+---------------------------------------------------------------------------
+12. get_cash_collection
+---------------------------------------------------------------------------
+    status:             // {shipping_company_cash (company collected) | shipping_company_cash_collection (admin collected)} {optional}
+    limit: 25           // { default - 25 } optional
+    offset: 0           // { default - 0 } optional
+    sort: id            // { default - id } optional
+    order: DESC/ASC     // { default - DESC } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Cash collection retrieved successfully",
+        "total": "10",
+        "cash_in_hand": "5000",
+        "data": [{ cash_collection_records }]
+    }
+
+---------------------------------------------------------------------------
+13. delete_shipping_company
+---------------------------------------------------------------------------
+    mobile: 9874563214
+    password: 12345695
+
+    Note: Account can only be deleted if there are no pending orders.
+
+    Response:
+    {
+        "error": false,
+        "message": "Account Deleted Successfully"
+    }
+
+---------------------------------------------------------------------------
+14. verify_otp
+---------------------------------------------------------------------------
+    otp: 123456
+    mobile: 9876543210
+
+    Response:
+    {
+        "error": false,
+        "message": "OTP Verified Successfully",
+        "data": []
+    }
+
+---------------------------------------------------------------------------
+15. resend_otp
+---------------------------------------------------------------------------
+    mobile: 9876543210
+    country_code: 91
+
+    Response:
+    {
+        "error": false,
+        "message": "OTP sent successfully"
+    }
+
+---------------------------------------------------------------------------
+16. register
+---------------------------------------------------------------------------
+    company_name: Company Name
+    mobile: 7852347890
+    email: test@gmail.com
+    password: 12345678
+    confirm_password: 12345678
+    address: Address
+    serviceable_zipcodes[]: 1,2,3       // {optional based on settings}
+    serviceable_cities[]: 1,5           // {optional based on settings}
+    kyc_documents[]: FILE               // KYC documents {optional}
+
+    Response:
+    {
+        "error": false,
+        "message": "Shipping Company registered successfully. Please wait for admin approval."
+    }
+
+---------------------------------------------------------------------------
+17. get_zipcodes
+---------------------------------------------------------------------------
+    NOTE: Returns only zipcodes with provider_type = 'company'
+          (areas serviced by shipping companies)
+
+    search: value       // {optional}
+    limit: 25           // { default - 25 } optional
+    offset: 0           // { default - 0 } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Zipcodes Retrieved Successfully",
+        "total": "100",
+        "data": [{ zipcodes with provider_type='company' }]
+    }
+
+---------------------------------------------------------------------------
+18. get_cities
+---------------------------------------------------------------------------
+    search: value       // {optional}
+    limit: 10           // { default - 10 } optional
+    offset: 0           // { default - 0 } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Cities retrieved successfully",
+        "data": [{ cities }]
+    }
+
+---------------------------------------------------------------------------
+19. get_statistics
+---------------------------------------------------------------------------
+    No parameters needed
+
+    Response:
+    {
+        "error": false,
+        "message": "Statistics retrieved successfully",
+        "data": {
+            "total_orders": "100",
+            "balance": "5000.00",
+            "cash_in_hand": "2500.00",
+            "today_delivered": "5",
+            "awaiting": "10",
+            "received": "8",
+            "processed": "5",
+            "shipped": "3",
+            "delivered": "60",
+            "cancelled": "8",
+            "returned": "6",
+            "total_earnings": "15000.00",
+            "total_paid": "10000.00",
+            "pending_payout": "5000.00"
+        }
+    }
+
+---------------------------------------------------------------------------
+20. get_payout_summary
+---------------------------------------------------------------------------
+    No parameters needed
+
+    Returns summary of prepaid order earnings (delivery charges owed by admin).
+
+    Response:
+    {
+        "error": false,
+        "message": "Payout summary retrieved successfully",
+        "data": {
+            "total_earnings": "15000.00",
+            "total_paid": "10000.00",
+            "pending_amount": "5000.00",
+            "order_count": "50"
+        }
+    }
+
+---------------------------------------------------------------------------
+21. send_withdrawal_request
+---------------------------------------------------------------------------
+    payment_address: Bank Account / UPI ID / Payment details
+    amount: 5000
+
+    Note: Amount must be less than or equal to current balance.
+
+    Response:
+    {
+        "error": false,
+        "message": "Withdrawal Request Sent Successfully",
+        "data": {
+            "new_balance": "0.00"
+        }
+    }
+
+---------------------------------------------------------------------------
+22. get_withdrawal_request
+---------------------------------------------------------------------------
+    limit: 25           // { default - 25 } optional
+    offset: 0           // { default - 0 } optional
+
+    Response:
+    {
+        "error": false,
+        "message": "Withdrawal Requests Retrieved Successfully",
+        "total": "5",
+        "data": [{ withdrawal_requests }]
+    }
+
+---------------------------------------------------------------------------
+Error Response Format:
+---------------------------------------------------------------------------
+
+All API errors follow this format:
+
+{
+    "error": true,
+    "message": "Error description here",
+    "data": []
+}
+
+Common errors:
+- "Unauthorized access not allowed" - Invalid or missing token
+- "You are not registered as a shipping company" - Wrong user type
+- "Validation errors..." - Invalid input parameters
+
+===========================================================================
+APP INTEGRATION FLOW GUIDE
+===========================================================================
+
+This section explains how to implement the Shipping Company app using
+the above APIs.
+
+---------------------------------------------------------------------------
+1. AUTHENTICATION FLOW
+---------------------------------------------------------------------------
+
+    A) NEW COMPANY REGISTRATION:
+
+        Step 1: get_zipcodes / get_cities  --> Get serviceable areas
+        Step 2: register                   --> Submit registration
+        Step 3: Wait for admin approval (account inactive until approved)
+        Step 4: login                      --> Get JWT token after approval
+
+    B) EXISTING COMPANY LOGIN:
+
+        Step 1: login                      --> Get JWT token
+        Step 2: Store token for subsequent API calls
+        Step 3: update_fcm                 --> Register device for push notifications
+
+    C) FORGOT PASSWORD:
+
+        Step 1: verify_user (is_forgot_password=1)  --> Send OTP
+        Step 2: verify_otp                          --> Verify OTP
+        Step 3: reset_password                      --> Set new password
+
+---------------------------------------------------------------------------
+2. HOME/DASHBOARD SCREEN
+---------------------------------------------------------------------------
+
+    Call these APIs to build the dashboard:
+
+    - get_statistics        --> Order counts, earnings, balance
+    - get_orders (limit=5)  --> Recent orders preview
+    - get_notifications     --> Unread notification count
+
+    Dashboard Cards:
+    +-------------------+-------------------+
+    | Total Orders: 100 | Today Delivered: 5|
+    +-------------------+-------------------+
+    | Cash in Hand:     | Pending Payout:   |
+    | Rs. 2,500         | Rs. 5,000         |
+    +-------------------+-------------------+
+
+---------------------------------------------------------------------------
+3. ORDERS MANAGEMENT
+---------------------------------------------------------------------------
+
+    A) LIST ORDERS:
+
+        get_orders with filters:
+        - active_status: Filter by status (received, shipped, delivered, etc.)
+        - limit/offset: Pagination
+
+    B) ORDER STATUS FLOW:
+
+        received --> processed --> shipped --> delivered
+                                          |
+                                          +--> returned (if customer returns)
+                                          +--> cancelled (if cancelled)
+
+    C) UPDATE ORDER STATUS:
+
+        update_order_status
+        - order_item_id: ID of the order item
+        - status: New status
+        - otp: Required only when marking as "delivered" (if OTP enabled)
+
+    D) ORDER DETAIL VIEW:
+
+        get_orders (order_id=<id>) --> Get single order with all items
+
+---------------------------------------------------------------------------
+4. EARNINGS & PAYOUTS
+---------------------------------------------------------------------------
+
+    UNDERSTANDING EARNINGS:
+
+    - COD Orders: Company collects cash from customer
+                  Admin collects cash from company (get_cash_collection)
+
+    - Prepaid Orders: Admin owes delivery charges to company
+                      Admin transfers to company (get_fund_transfers)
+
+    APIs to use:
+
+    - get_payout_summary     --> View pending payout from prepaid orders
+    - get_cash_collection    --> View COD cash transactions
+    - get_fund_transfers     --> View admin payouts received
+    - send_withdrawal_request--> Request balance withdrawal
+    - get_withdrawal_request --> View withdrawal request history
+
+---------------------------------------------------------------------------
+5. PROFILE MANAGEMENT
+---------------------------------------------------------------------------
+
+    - get_shipping_company_details  --> Load profile data
+    - update_user                   --> Update profile/password/image
+
+---------------------------------------------------------------------------
+6. SETTINGS & POLICIES
+---------------------------------------------------------------------------
+
+    get_settings with type:
+
+    - shipping_company_privacy_policy   --> Privacy policy content
+    - shipping_company_terms_conditions --> Terms & conditions
+    - currency                          --> Currency symbol
+    - authentication_settings           --> OTP/authentication config
+
+---------------------------------------------------------------------------
+7. ACCOUNT DELETION
+---------------------------------------------------------------------------
+
+    delete_shipping_company
+
+    Note: Can only delete if no pending orders exist.
+
+---------------------------------------------------------------------------
+ORDER STATUS REFERENCE
+---------------------------------------------------------------------------
+
+| Status      | Description                                    |
+|-------------|------------------------------------------------|
+| awaiting    | Order placed, awaiting confirmation            |
+| received    | Order confirmed, ready for processing          |
+| processed   | Order packed/prepared                          |
+| shipped     | Order dispatched, in transit                   |
+| delivered   | Order delivered to customer                    |
+| cancelled   | Order cancelled                                |
+| returned    | Order returned by customer                     |
+
+---------------------------------------------------------------------------
+CASH TRANSACTION TYPES
+---------------------------------------------------------------------------
+
+| Type                           | Description                      |
+|--------------------------------|----------------------------------|
+| shipping_company_cash          | COD cash collected from customer |
+| shipping_company_cash_collection| Cash collected by admin          |
+
+---------------------------------------------------------------------------
+IMPORTANT NOTES FOR APP DEVELOPERS
+---------------------------------------------------------------------------
+
+1. Always include Authorization header with Bearer token for authenticated APIs
+
+2. Handle token expiry - redirect to login on 401 errors
+
+3. Orders assigned to shipping company have shipping_company_id in order data
+
+4. Cash in hand = COD collected - Cash given to admin
+
+5. Balance = Admin transfers received (from prepaid order earnings)
+
+6. For delivered status with OTP:
+   - Get OTP from customer
+   - Pass OTP in update_order_status call
+   - Invalid OTP returns error
+
+7. Push notifications:
+   - Register FCM token after login
+   - Handle order assignment notifications
+   - Handle payment notifications

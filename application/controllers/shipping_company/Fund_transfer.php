@@ -1,0 +1,108 @@
+<?php
+
+defined('BASEPATH') or exit('No direct script access allowed');
+
+class Fund_transfer extends CI_Controller
+{
+
+    public function __construct()
+    {
+        parent::__construct();
+        $this->load->database();
+        $this->load->library(['ion_auth', 'form_validation', 'upload']);
+        $this->load->helper(['url', 'language', 'file']);
+        $this->load->model('Fund_transfers_model');
+        $this->load->model('Shipping_company_model');
+    }
+
+    public function index()
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            $this->data['main_page'] = TABLES . 'manage-fund-transfers';
+            $settings = get_settings('system_settings', true);
+            $this->data['title'] = 'View Fund Transfer | ' . $settings['app_name'];
+            $this->data['meta_description'] = ' View Fund Transfer  | ' . $settings['app_name'];
+            if (isset($_GET['edit_id']) && !empty($_GET['edit_id'])) {
+                $this->data['fetched_data'] = fetch_details('shipping_company', ['id' => $_GET['edit_id'], 'status' => '1']);
+            }
+            $this->load->view('shipping_company/template', $this->data);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+
+    public function view_fund_transfers($user_id = '')
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            if ($user_id == '' || $this->ion_auth->user()->row()->id != $user_id) {
+                return false;
+            }
+
+            return $this->Fund_transfers_model->get_fund_transfers_list_shipping_company($user_id);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+
+    private function is_shipping_company()
+    {
+        $user = $this->ion_auth->user()->row();
+        return ($user->is_shipping_company = 1);
+    }
+
+    public function manage_cash()
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            $this->data['main_page'] = TABLES . 'cash-collection';
+            $settings = get_settings('system_settings', true);
+            $user_id = $this->ion_auth->user()->row()->id;
+            $this->data['curreny'] = $settings['currency'];
+            $this->data['cash_in_hand'] = fetch_details("users", ['id' => $user_id], 'cash_received');
+            // Cash Collected by Admin = sum of shipping_company_cash_collection transactions
+            $this->data['cash_collected'] = $this->db->select(' SUM(amount) as total_amt ')->where(['type' => 'shipping_company_cash_collection', 'user_id' => $user_id])->get('transactions')->result_array();
+            $this->data['title'] = 'View Cash Collection | ' . $settings['app_name'];
+            $this->data['meta_description'] = ' View Cash Collection  | ' . $settings['app_name'];
+            $this->load->view('shipping_company/template', $this->data);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+
+    public function get_cash_collection()
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            $user_id = $this->ion_auth->user()->row()->id;
+            return $this->Shipping_company_model->get_cash_collection_list($user_id);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+
+    public function manage_transactions()
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            $this->data['main_page'] = TABLES . 'manage-transactions';
+            $settings = get_settings('system_settings', true);
+            $user_id = $this->ion_auth->user()->row()->id;
+            $this->data['curreny'] = $settings['currency'];
+            $this->data['cash_in_hand'] = fetch_details("users", ['id' => $user_id], 'cash_received');
+            // Cash Collected by Admin = sum of shipping_company_cash_collection transactions
+            $this->data['cash_collected'] = $this->db->select(' SUM(amount) as total_amt ')->where(['type' => 'shipping_company_cash_collection', 'user_id' => $user_id])->get('transactions')->result_array();
+            $this->data['title'] = 'View Transactions | ' . $settings['app_name'];
+            $this->data['meta_description'] = ' View Transactions  | ' . $settings['app_name'];
+            $this->load->view('shipping_company/template', $this->data);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+
+    public function get_transactions()
+    {
+        if ($this->ion_auth->logged_in() && $this->ion_auth->is_shipping_company()) {
+            $user_id = $this->ion_auth->user()->row()->id;
+            return $this->Shipping_company_model->get_transactions_list($user_id);
+        } else {
+            redirect('shipping-company/login', 'refresh');
+        }
+    }
+}
