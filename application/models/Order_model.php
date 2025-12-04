@@ -400,6 +400,17 @@ class Order_model extends CI_Model
             // Base delivery charge from client, if provided
             $delivery_charge = isset($data['delivery_charge']) && $data['delivery_charge'] !== '' ? floatval($data['delivery_charge']) : 0.0;
 
+
+            // Initialize shipping quote snapshot (normalize from POST data if provided)
+            $shipping_quote_snapshot_normalized = '';
+            if (isset($data['shipping_quote_snapshot']) && $data['shipping_quote_snapshot'] !== '') {
+                if (is_array($data['shipping_quote_snapshot'])) {
+                    $shipping_quote_snapshot_normalized = json_encode($data['shipping_quote_snapshot'], JSON_UNESCAPED_UNICODE);
+                } else {
+                    $shipping_quote_snapshot_normalized = $data['shipping_quote_snapshot'];
+                }
+            }
+
             // Fallback: derive delivery charge from selected shipping quote snapshot
             if (($delivery_charge <= 0) && !empty($shipping_quote_snapshot_normalized)) {
                 $derived_charge = 0.0;

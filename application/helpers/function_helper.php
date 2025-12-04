@@ -8011,3 +8011,175 @@ function apply_locale_to_categories($categories, $locale = null)
 
     return $categories;
 }
+
+/**
+ * Parse order status history from JSON string or array
+ * 
+ * @param string|array|null $status_json JSON string or array from order_items.status field
+ * @return array Formatted status history with status, label, timestamp, formatted_date
+ */
+function parse_order_status_history($status_json)
+{
+    if (empty($status_json)) {
+        return [];
+    }
+
+    // If it's already an array, use it directly
+    if (is_array($status_json)) {
+        $decoded = $status_json;
+    } else {
+        // It's a string, try to decode - handle double-encoded JSON
+        $decoded = json_decode($status_json, true);
+        if (is_string($decoded)) {
+            // It was double-encoded, decode again
+            $decoded = json_decode($decoded, true);
+        }
+    }
+
+    if (!is_array($decoded) || empty($decoded)) {
+        return [];
+    }
+
+    $status_labels = [
+        'awaiting' => 'Order Placed',
+        'received' => 'Order Received',
+        'processed' => 'Order Processed',
+        'shipped' => 'Order Shipped',
+        'delivered' => 'Order Delivered',
+        'cancelled' => 'Order Cancelled',
+        'returned' => 'Order Returned',
+        'return_request_pending' => 'Return Request Pending',
+        'return_request_approved' => 'Return Request Approved',
+    ];
+
+    $history = [];
+    foreach ($decoded as $entry) {
+        if (!is_array($entry) || count($entry) < 2) {
+            continue;
+        }
+
+        $status = $entry[0];
+        $timestamp = $entry[1];
+
+        // Format timestamp
+        $formatted_date = '';
+        if (!empty($timestamp)) {
+            try {
+                // Handle different timestamp formats
+                if (strpos($timestamp, '-') !== false) {
+                    $date_obj = DateTime::createFromFormat('d-m-Y h:i:sa', $timestamp);
+                    if (!$date_obj) {
+                        $date_obj = DateTime::createFromFormat('Y-m-d H:i:s', $timestamp);
+                    }
+                    if ($date_obj) {
+                        $formatted_date = $date_obj->format('d-M-Y h:i A');
+                    } else {
+                        $formatted_date = $timestamp;
+                    }
+                } else {
+                    $formatted_date = date('d-M-Y h:i A', strtotime($timestamp));
+                }
+            } catch (Exception $e) {
+                $formatted_date = $timestamp;
+            }
+        }
+
+        $history[] = [
+            'status' => $status,
+            'label' => isset($status_labels[$status]) ? $status_labels[$status] : ucfirst(str_replace('_', ' ', $status)),
+            'timestamp' => $timestamp,
+            'formatted_date' => $formatted_date,
+        ];
+    }
+
+    return $history;
+}
+
+/**
+ * Format order items with status history for tracking display
+ * 
+ * @param array $order_items Array of order items with status field
+ * @return array Formatted order items with status_history added
+ */
+function format_order_tracking_timeline($order_items)
+{
+    if (empty($order_items) || !is_array($order_items)) {
+        return [];
+    }
+
+    foreach ($order_items as &$item) {
+        $status_json = isset($item['status']) ? $item['status'] : '';
+        $item['status_history'] = parse_order_status_history($status_json);
+        $item['current_status'] = isset($item['active_status']) ? $item['active_status'] : '';
+    }
+
+    return $order_items;
+}
+
+/**
+ * Notify shipping company when order is cancelled
+ * 
+ * @param int $order_id Order ID
+ * @param string $reason Cancellation reason (optional)
+ * @return bool Success status
+ */
+function notify_shipping_company_cancellation($order_id, $reason = '')
+{
+    $t = &get_instance();
+
+    // Get order details
+    $order = fetch_details('orders', ['id' => $order_id], 'shipping_company_id, user_id, id');
+    if (empty($order) || empty($order[0]['shipping_company_id'])) {
+        return false;
+    }
+
+    $shipping_company_id = $order[0]['shipping_company_id'];
+
+    // Get shipping company details
+    $company = fetch_details('users', ['id' => $shipping_company_id], 'username, fcm_id, email, mobile');
+    if (empty($company)) {
+        return false;
+    }
+
+    $company_data = $company[0];
+    $fcm_id = isset($company_data['fcm_id']) ? $company_data['fcm_id'] : '';
+
+    // Prepare notification message
+    $message = "Order #$order_id has been cancelled";
+    if (!empty($reason)) {
+        $message .= ". Reason: $reason";
+    }
+
+    // Send FCM notification if available
+    if (!empty($fcm_id)) {
+        $firebase_project_id = get_settings('firebase_project_id');
+        $service_account_file = get_settings('service_account_file');
+
+        if (!empty($firebase_project_id) && !empty($service_account_file)) {
+            $fcmMsg = array(
+                'title' => "Order Cancelled",
+                'body' => $message,
+                'type' => "order_cancelled",
+                'order_id' => $order_id,
+            );
+
+            $registrationIDs_chunks = [[$fcm_id]];
+            send_notification($fcmMsg, $registrationIDs_chunks, $fcmMsg);
+        }
+    }
+
+    // Create notification record if notifications table exists
+    if ($t->db->table_exists('notifications')) {
+        $notification_data = [
+            'user_id' => $shipping_company_id,
+            'title' => 'Order Cancelled',
+            'message' => $message,
+            'type' => 'order_cancelled',
+            'type_id' => $order_id,
+            'date_created' => date('Y-m-d H:i:s'),
+        ];
+        $t->db->insert('notifications', escape_array($notification_data));
+    }
+
+    return true;
+}

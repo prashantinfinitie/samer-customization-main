@@ -431,6 +431,7 @@ class Orders extends CI_Controller
 
                     $current_orders_status = fetch_details('orders', $where_id, 'user_id,active_status');
                     $user_id = $current_orders_status[0]['user_id'];
+                    $shipping_company_id = isset($current_orders_status[0]['shipping_company_id']) ? $current_orders_status[0]['shipping_company_id'] : '';
                     $current_orders_status = $current_orders_status[0]['active_status'];
 
                     if ($priority_status[$_POST['val']] > $priority_status[$current_orders_status]) {
@@ -526,6 +527,11 @@ class Orders extends CI_Controller
                                 }
 
                                 update_stock($product_variant_ids, $qtns, 'plus');
+
+                                // Notify shipping company if order is cancelled and assigned to a shipping company
+                                if (!empty($shipping_company_id)) {
+                                    notify_shipping_company_cancellation($_POST['orderid'], 'Cancelled by admin');
+                                }
                             }
                             $message = 'Status Updated Successfully';
                             update_details(['updated_by' => $_SESSION['user_id']], ['order_id' => $_POST['orderid']], 'order_items');

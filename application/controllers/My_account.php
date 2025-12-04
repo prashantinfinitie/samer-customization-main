@@ -321,7 +321,7 @@ class My_account extends CI_Controller
 
                     $this->order_model->update_order(['active_status' => $_POST['status']], ['order_id' => $_POST['order_id']], false, 'order_items');
 
-                    $order_details = fetch_details('orders', ['id' => $_POST['order_id']], 'id, payment_method');
+                    $order_details = fetch_details('orders', ['id' => $_POST['order_id']], 'id, payment_method, shipping_company_id');
                     if (trim($_POST['status'] == 'cancelled') && $order_details[0]['payment_method'] != 'COD' && $order_details[0]['payment_method'] != 'cod') {
                         process_refund($_POST['order_id'], $_POST['status'], 'orders');
                         $data = fetch_details('order_items', ['order_id' => $_POST['order_id']], 'product_variant_id,quantity');
@@ -333,6 +333,11 @@ class My_account extends CI_Controller
                         }
 
                         update_stock($product_variant_ids, $qtns, 'plus');
+                    }
+
+                    // Notify shipping company if order is cancelled and has shipping company
+                    if (trim($_POST['status'] == 'cancelled') && !empty($order_details[0]['shipping_company_id'])) {
+                        notify_shipping_company_cancellation($_POST['order_id'], 'Cancelled by customer');
                     }
                     $this->response['error'] = false;
                     $this->response['message'] = 'Order Updated Successfully';

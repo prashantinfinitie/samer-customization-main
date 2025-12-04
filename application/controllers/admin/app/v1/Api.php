@@ -363,7 +363,7 @@ Defined Methods:-
         }
 
 
-        $order_method = fetch_details('orders', ['id' => $order_item[0]['order_id']], 'payment_method');
+        $order_method = fetch_details('orders', ['id' => $order_item[0]['order_id']], 'payment_method, shipping_company_id');
         if ($order_method[0]['payment_method'] == 'bank_transfer') {
             $bank_receipt = fetch_details('order_bank_transfer', ['order_id' => $_POST['orderid']]);
             $transaction_status = fetch_details('transactions', ['order_id' => $_POST['orderid']], 'status');
@@ -395,6 +395,11 @@ Defined Methods:-
                     if (trim($_POST['status']) == 'cancelled' || trim($_POST['status']) == 'returned') {
                         $data = fetch_details('order_items', ['id' => $_POST['order_item_id']], 'product_variant_id,quantity');
                         update_stock($data[0]['product_variant_id'], $data[0]['quantity'], 'plus');
+                    }
+
+                    // Notify shipping company if order is cancelled and has shipping company
+                    if (trim($_POST['status']) == 'cancelled' && !empty($order_method[0]['shipping_company_id'])) {
+                        notify_shipping_company_cancellation($order_item_res[0]['order_id'], 'Cancelled by admin');
                     }
                     $settings = get_settings('system_settings', true);
                     $app_name = isset($settings['app_name']) && !empty($settings['app_name']) ? $settings['app_name'] : '';
@@ -2299,6 +2304,122 @@ Defined Methods:-
         $this->response['message'] = 'Orders retrieved';
         $this->response['total'] = strval($total);
         $this->response['data'] = $orders;
+        print_r(json_encode($this->response));
+    }
+
+    /**
+     * Get shipping company order tracking
+     * 
+     * Parameters:
+     * - order_id: required
+     * - shipping_company_id: optional (filter by shipping company)
+     * 
+     * Returns order details with status history for shipping company orders
+     */
+    public function get_shipping_company_order_tracking()
+    {
+        if (!$this->verify_token()) {
+            return false;
+        }
+
+        $this->form_validation->set_rules('order_id', 'Order ID', 'trim|required|numeric|xss_clean');
+        $this->form_validation->set_rules('shipping_company_id', 'Shipping Company ID', 'trim|numeric|xss_clean');
+
+        if (!$this->form_validation->run()) {
+            $this->response['error'] = true;
+            $this->response['message'] = strip_tags(validation_errors());
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        $order_id = $this->input->post('order_id', true);
+        $shipping_company_id = $this->input->post('shipping_company_id', true);
+
+        // Get order details
+        $this->db->select('o.*, u.username as customer_name, u.email as customer_email, u.mobile as customer_mobile, 
+                          sc.username as shipping_company_name, sc.email as shipping_company_email, sc.mobile as shipping_company_mobile, sc.address as shipping_company_address,
+                          a.address as delivery_address, a.landmark, a.pincode, a.city');
+        $this->db->from('orders o');
+        $this->db->join('users u', 'u.id = o.user_id', 'left');
+        $this->db->join('users sc', 'sc.id = o.shipping_company_id', 'left');
+        $this->db->join('addresses a', 'a.id = o.address_id', 'left');
+        $this->db->where('o.id', $order_id);
+
+        if (!empty($shipping_company_id)) {
+            $this->db->where('o.shipping_company_id', $shipping_company_id);
+        }
+
+        $order = $this->db->get()->row_array();
+
+        if (empty($order)) {
+            $this->response['error'] = true;
+            $this->response['message'] = 'Order not found';
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        // Check if order has shipping company
+        if (empty($order['shipping_company_id'])) {
+            $this->response['error'] = true;
+            $this->response['message'] = 'This order is not assigned to a shipping company';
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        // Get order items with status history
+        $order_items = $this->db->select('oi.id, oi.product_name, oi.variant_name, oi.quantity, oi.price, oi.sub_total, 
+                                          oi.status, oi.active_status, oi.date_added,
+                                          p.name as current_product_name, p.name_ar as current_product_name_ar, p.image as product_image,
+                                          pv.sku, pv.weight, pv.height, pv.breadth, pv.length,
+                                          s.username as seller_name')
+            ->from('order_items oi')
+            ->join('product_variants pv', 'pv.id = oi.product_variant_id', 'left')
+            ->join('products p', 'p.id = pv.product_id', 'left')
+            ->join('users s', 's.id = oi.seller_id', 'left')
+            ->where('oi.order_id', $order_id)
+            ->get()
+            ->result_array();
+
+        // Format order items with status history
+        $formatted_items = format_order_tracking_timeline($order_items);
+
+        // Prepare response
+        $tracking_data = [
+            'order_id' => $order['id'],
+            'order_number' => isset($order['order_number']) ? $order['order_number'] : 'ORD-' . $order['id'],
+            'customer' => [
+                'id' => $order['user_id'],
+                'name' => $order['customer_name'],
+                'email' => $order['customer_email'],
+                'mobile' => $order['customer_mobile'],
+            ],
+            'shipping_company' => [
+                'id' => $order['shipping_company_id'],
+                'name' => $order['shipping_company_name'],
+                'email' => $order['shipping_company_email'],
+                'mobile' => $order['shipping_company_mobile'],
+                'address' => $order['shipping_company_address'],
+            ],
+            'delivery_address' => [
+                'address' => $order['delivery_address'],
+                'landmark' => $order['landmark'],
+                'pincode' => $order['pincode'],
+                'city' => $order['city'],
+            ],
+            'order_total' => $order['total'],
+            'delivery_charge' => $order['delivery_charge'],
+            'final_total' => $order['final_total'],
+            'payment_method' => $order['payment_method'],
+            'order_date' => $order['date_added'],
+            'order_items' => $formatted_items,
+        ];
+
+        $this->response['error'] = false;
+        $this->response['message'] = 'Shipping company order tracking retrieved successfully';
+        $this->response['data'] = $tracking_data;
         print_r(json_encode($this->response));
     }
 }

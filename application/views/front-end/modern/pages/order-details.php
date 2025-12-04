@@ -246,6 +246,44 @@
                             <hr class="mt-5 mb-5">
                         <?php  } ?>
 
+                        <?php
+                        // Show order tracking timeline for shipping company orders
+                        if (!empty($order['shipping_company_id']) && !empty($order['order_items'])) {
+                            $first_item = $order['order_items'][0];
+                            if (!empty($first_item['status'])) {
+                                $status_history = parse_order_status_history($first_item['status']);
+                                if (!empty($status_history)) {
+                        ?>
+                                    <div class="row mt-4">
+                                        <div class="col-md-12">
+                                            <h6 class="h5"><?= !empty($this->lang->line('order_tracking')) ? str_replace('\\', '', $this->lang->line('order_tracking')) : 'Order Tracking' ?></h6>
+                                            <hr class="mt-3 mb-3">
+                                            <div class="tracking-timeline">
+                                                <?php foreach ($status_history as $index => $status_entry) { ?>
+                                                    <div class="d-flex mb-3">
+                                                        <div class="flex-shrink-0">
+                                                            <div class="rounded-circle bg-<?= $index == count($status_history) - 1 ? 'primary' : 'secondary' ?> text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                                <i class="fas fa-<?= $status_entry['status'] == 'delivered' ? 'check' : ($status_entry['status'] == 'cancelled' ? 'times' : 'circle') ?>"></i>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1 ms-3">
+                                                            <h6 class="mb-1"><?= $status_entry['label'] ?></h6>
+                                                            <p class="text-muted mb-0 small"><?= $status_entry['formatted_date'] ?></p>
+                                                        </div>
+                                                    </div>
+                                                    <?php if ($index < count($status_history) - 1) { ?>
+                                                        <div class="ms-5 mb-2" style="border-left: 2px solid #dee2e6; height: 20px; margin-left: 20px;"></div>
+                                                    <?php } ?>
+                                                <?php } ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                        <?php
+                                }
+                            }
+                        }
+                        ?>
+
                         <div class="row">
                             <div class="col-md-6">
                                 <h6 class="h5"><?= !empty($this->lang->line('shipping_details')) ? str_replace('\\', '', $this->lang->line('shipping_details')) : 'Shipping Details' ?></h6>
@@ -255,6 +293,22 @@
                                 <span><?= $order['mobile'] ?></span> <br>
                                 <span><?= $order['delivery_time'] ?></span> <br>
                                 <span><?= $order['delivery_date'] ?></span> <br>
+
+                                <?php
+                                // Show shipping company info and tracking if order has shipping company
+                                if (!empty($order['shipping_company_id'])) {
+                                    $shipping_company = fetch_details('users', ['id' => $order['shipping_company_id']], 'username, email, mobile');
+                                    if (!empty($shipping_company)) {
+                                        $company = $shipping_company[0];
+                                        echo '<hr class="mt-3 mb-3">';
+                                        echo '<h6 class="h6"><strong>Shipping Company:</strong></h6>';
+                                        echo '<span>' . $company['username'] . '</span><br>';
+                                        if (!empty($company['mobile'])) {
+                                            echo '<span>' . $company['mobile'] . '</span><br>';
+                                        }
+                                    }
+                                }
+                                ?>
                             </div>
                             <div class="col-md-6">
                                 <h6 class="h5"><?= !empty($this->lang->line('price_details')) ? str_replace('\\', '', $this->lang->line('price_details')) : 'Price Details' ?></h6>

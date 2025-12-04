@@ -676,6 +676,137 @@ curl -X POST "https://samer.infinitietech.in/app/v1/api/get_orders" \
 
 ---
 
+## Get Order Tracking
+
+### Endpoint
+```
+POST /app/v1/api/get_order_tracking
+```
+
+### Description
+Retrieves order tracking information for shipping company orders, including status history timeline and shipping company details.
+
+### Headers
+```
+Content-Type: application/json
+Authorization: Bearer YOUR_ACCESS_TOKEN
+```
+
+### Request Body
+```json
+{
+  "order_id": 123
+}
+```
+
+### Request Parameters
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| order_id | integer | Yes | Order ID to track |
+
+### cURL Example
+```bash
+curl -X POST "https://samer.infinitietech.in/app/v1/api/get_order_tracking" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -d '{
+    "order_id": 123
+  }'
+```
+
+### Response
+```json
+{
+  "error": false,
+  "message": "Order tracking retrieved successfully",
+  "data": {
+    "order_id": 123,
+    "order_total": "500.00",
+    "delivery_charge": "50.00",
+    "final_total": "550.00",
+    "payment_method": "COD",
+    "order_date": "2025-01-15 10:00:00",
+    "address": "123 Main St, City",
+    "shipping_company": {
+      "id": 104,
+      "name": "Fast Delivery Co",
+      "email": "fast@delivery.com",
+      "mobile": "1234567890",
+      "address": "Company Address"
+    },
+    "order_items": [
+      {
+        "id": 456,
+        "product_name": "Product Name",
+        "variant_name": "Variant",
+        "quantity": 2,
+        "sub_total": "500.00",
+        "active_status": "processed",
+        "current_status": "processed",
+        "status_history": [
+          {
+            "status": "received",
+            "label": "Order Received",
+            "timestamp": "15-01-2025 10:30:00am",
+            "formatted_date": "15-Jan-2025 10:30 AM"
+          },
+          {
+            "status": "processed",
+            "label": "Order Processed",
+            "timestamp": "15-01-2025 11:00:00am",
+            "formatted_date": "15-Jan-2025 11:00 AM"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Response Fields
+- `order_id`: Order ID
+- `order_total`: Order subtotal
+- `delivery_charge`: Delivery charge
+- `final_total`: Final order total
+- `payment_method`: Payment method used
+- `order_date`: Order placement date
+- `address`: Delivery address
+- `shipping_company`: Shipping company details (if order is assigned to shipping company)
+  - `id`: Shipping company ID
+  - `name`: Company name
+  - `email`: Company email
+  - `mobile`: Company mobile
+  - `address`: Company address
+- `order_items`: Array of order items with tracking information
+  - `id`: Order item ID
+  - `product_name`: Product name
+  - `variant_name`: Product variant name
+  - `quantity`: Quantity ordered
+  - `sub_total`: Item subtotal
+  - `active_status`: Current status
+  - `current_status`: Current status (same as active_status)
+  - `status_history`: Array of status history entries
+    - `status`: Status code
+    - `label`: Human-readable status label
+    - `timestamp`: Original timestamp
+    - `formatted_date`: Formatted date string
+
+### Error Response
+```json
+{
+  "error": true,
+  "message": "Order not found or access denied",
+  "data": []
+}
+```
+
+### Notes
+- This endpoint is only available for orders assigned to shipping companies
+- Status history shows the complete timeline of order status changes
+- Each status entry includes both the original timestamp and a formatted date for display
+
+---
+
 ## Language Detection Priority
 
 The API detects language in the following priority order:

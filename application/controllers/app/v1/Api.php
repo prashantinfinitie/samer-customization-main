@@ -1452,6 +1452,96 @@ Defined Methods:-
         print_r(json_encode($this->response));
     }
 
+    /**
+     * Get order tracking for shipping company orders
+     * 
+     * Parameters:
+     * - order_id: required
+     * 
+     * Returns order status history, shipping company info, and tracking timeline
+     */
+    public function get_order_tracking()
+    {
+        if (!$this->verify_token()) {
+            return false;
+        }
+
+        $this->form_validation->set_rules('order_id', 'Order ID', 'trim|required|numeric|xss_clean');
+
+        if (!$this->form_validation->run()) {
+            $this->response['error'] = true;
+            $this->response['message'] = strip_tags(validation_errors());
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        $user_id = isset($this->user_details['id']) && $this->user_details['id'] !== null ? $this->user_details['id'] : '';
+        $order_id = $this->input->post('order_id', true);
+
+        // Get order details and verify it belongs to the customer
+        $order = fetch_details('orders', ['id' => $order_id, 'user_id' => $user_id], 'id, shipping_company_id, user_id, total, delivery_charge, final_total, payment_method, date_added, address');
+
+        if (empty($order)) {
+            $this->response['error'] = true;
+            $this->response['message'] = 'Order not found or access denied';
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        $order_data = $order[0];
+
+        // Check if order has shipping company
+        if (empty($order_data['shipping_company_id'])) {
+            $this->response['error'] = true;
+            $this->response['message'] = 'This order is not assigned to a shipping company';
+            $this->response['data'] = array();
+            print_r(json_encode($this->response));
+            return false;
+        }
+
+        // Get shipping company details
+        $shipping_company = fetch_details('users', ['id' => $order_data['shipping_company_id']], 'id, username, email, mobile, address');
+        $shipping_company_data = !empty($shipping_company) ? $shipping_company[0] : null;
+
+        // Get order items with status history
+        $order_items = $this->db->select('oi.id, oi.product_name, oi.variant_name, oi.quantity, oi.sub_total, oi.status, oi.active_status, p.image as product_image')
+            ->from('order_items oi')
+            ->join('product_variants pv', 'pv.id = oi.product_variant_id', 'left')
+            ->join('products p', 'p.id = pv.product_id', 'left')
+            ->where('oi.order_id', $order_id)
+            ->get()
+            ->result_array();
+
+        // Format order items with status history
+        $formatted_items = format_order_tracking_timeline($order_items);
+
+        // Prepare response
+        $tracking_data = [
+            'order_id' => $order_id,
+            'order_total' => $order_data['total'],
+            'delivery_charge' => $order_data['delivery_charge'],
+            'final_total' => $order_data['final_total'],
+            'payment_method' => $order_data['payment_method'],
+            'order_date' => $order_data['date_added'],
+            'address' => $order_data['address'],
+            'shipping_company' => $shipping_company_data ? [
+                'id' => $shipping_company_data['id'],
+                'name' => $shipping_company_data['username'],
+                'email' => $shipping_company_data['email'],
+                'mobile' => $shipping_company_data['mobile'],
+                'address' => $shipping_company_data['address'],
+            ] : null,
+            'order_items' => $formatted_items,
+        ];
+
+        $this->response['error'] = false;
+        $this->response['message'] = 'Order tracking retrieved successfully';
+        $this->response['data'] = $tracking_data;
+        print_r(json_encode($this->response));
+    }
+
     /*
         status: cancelled / returned
         order_id:1201 //this is order_item_id
@@ -1583,13 +1673,19 @@ Defined Methods:-
 
             $order_id = fetch_details('order_items', ['id' => $_POST['order_id']], 'id, order_id');
 
-            $order_details = fetch_details('orders', ['id' => $order_id[0]['order_id']], 'id, payment_method');
+            $order_details = fetch_details('orders', ['id' => $order_id[0]['order_id']], 'id, payment_method, shipping_company_id');
             if (trim($_POST['status']) == 'cancelled' && $order_details[0]['payment_method'] != 'COD' && $order_details[0]['payment_method'] != 'razorpay' && $order_details[0]['payment_method'] != 'Razorpay' && $order_details[0]['payment_method'] != 'cod' && $this->response['error'] == false) {
                 process_refund($_POST['order_id'], $_POST['status'], 'order_items');
             }
             if (trim($_POST['status']) == 'cancelled' && $order_details[0]['payment_method'] != 'COD' && $order_details[0]['payment_method'] != 'cod') {
                 $data = fetch_details('order_items', ['id' => $_POST['order_id']], 'product_variant_id,quantity');
                 update_stock($data[0]['product_variant_id'], $data[0]['quantity'], 'plus');
+            }
+
+            // Notify shipping company if order is cancelled and has shipping company
+            if (trim($_POST['status']) == 'cancelled' && !empty($order_details[0]['shipping_company_id']) && $this->response['error'] == false) {
+                $reason = isset($_POST['return_reason']) ? $_POST['return_reason'] : (isset($_POST['other_reason']) ? $_POST['other_reason'] : '');
+                notify_shipping_company_cancellation($order_id[0]['order_id'], $reason);
             }
         }
         print_r(json_encode($this->response));

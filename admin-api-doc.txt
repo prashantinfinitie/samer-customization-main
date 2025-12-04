@@ -48,6 +48,7 @@ SHIPPING COMPANY MANAGEMENT APIs (Admin Panel)
 33. get_shipping_company_cash_collection
 34. get_shipping_company_fund_transfers
 35. get_shipping_company_orders
+36. get_shipping_company_order_tracking
 
 ------------------------------------------
 What parameters to be Passed?  See here >>
@@ -289,3 +290,12 @@ SHIPPING COMPANY MANAGEMENT APIs
     status: delivered           // { optional } order status
     limit: 25                   // { default - 25 } optional
     offset: 0                   // { default - 0 } optional
+
+36. get_shipping_company_order_tracking
+    order_id: 123               // { required } Order ID to track
+    shipping_company_id: 15     // { optional } Filter by shipping company
+    
+    Response includes:
+    - Order details with customer and shipping company info
+    - Order items with status history timeline
+    - Each status entry includes: status, label, timestamp, formatted_date

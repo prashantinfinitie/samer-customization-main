@@ -639,6 +639,15 @@ curl -X POST "http://localhost/samer-customisation-main/shipping_company/app/v1/
           "price": "250.00",
           "sub_total": "500.00",
           "status": "received",
+          "current_status": "received",
+          "status_history": [
+            {
+              "status": "received",
+              "label": "Order Received",
+              "timestamp": "15-01-2025 10:30:00am",
+              "formatted_date": "15-Jan-2025 10:30 AM"
+            }
+          ],
           "measurement": "1 kg"
         }
       ]
@@ -646,6 +655,12 @@ curl -X POST "http://localhost/samer-customisation-main/shipping_company/app/v1/
   ]
 }
 ```
+
+**Note:** The `get_orders` response now includes `status_history` array for each order item, showing the complete timeline of status changes. Each status entry includes:
+- `status`: Status code (received, processed, shipped, delivered, etc.)
+- `label`: Human-readable status label
+- `timestamp`: Original timestamp from status update
+- `formatted_date`: Formatted date string for display
 
 **cURL Example:**
 ```bash
@@ -692,6 +707,11 @@ curl -X POST "http://localhost/samer-customisation-main/shipping_company/app/v1/
 **Note:** When status is set to "delivered" for COD orders, the system automatically:
 - Updates `cash_received` for the shipping company
 - Creates a transaction record of type `shipping_company_cash`
+
+**Cancellation Handling:**
+- When an order is cancelled by customer or admin, the shipping company receives a notification
+- Cancelled orders are automatically removed from active order lists
+- Status history will show the cancellation entry with timestamp
 
 ---
 

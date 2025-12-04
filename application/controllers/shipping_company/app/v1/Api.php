@@ -274,7 +274,7 @@ class Api extends CI_Controller
         $order_id = (isset($_POST['order_id']) && !empty($_POST['order_id'])) ? $_POST['order_id'] : null;
 
         // Get orders assigned to this shipping company
-        $this->db->select('o.*, oi.id as order_item_id, oi.product_variant_id, oi.quantity, oi.price, oi.sub_total, oi.active_status as item_status,
+        $this->db->select('o.*, oi.id as order_item_id, oi.product_variant_id, oi.quantity, oi.price, oi.sub_total, oi.active_status as item_status, oi.status as item_status_history,
                            p.name as product_name, p.name_ar as product_name_ar, p.short_description, p.short_description_ar, p.description, p.description_ar, p.image as product_image,
                            c.name as category_name, c.name_ar as category_name_ar,
                            pv.weight, pv.height, pv.breadth, pv.length,
@@ -350,6 +350,12 @@ class Api extends CI_Controller
                 $transformed_product = $this->apply_product_language([$product_data], $lang);
                 $product = $transformed_product[0];
 
+                // Parse status history
+                $status_history = [];
+                if (!empty($order_row['item_status_history'])) {
+                    $status_history = parse_order_status_history($order_row['item_status_history']);
+                }
+
                 $grouped_orders[$oid]['order_items'][] = [
                     'order_item_id' => $order_row['order_item_id'],
                     'product_name' => $product['name'],
@@ -365,6 +371,8 @@ class Api extends CI_Controller
                     'price' => $order_row['price'],
                     'sub_total' => $order_row['sub_total'],
                     'status' => $order_row['item_status'],
+                    'current_status' => $order_row['item_status'],
+                    'status_history' => $status_history,
                     'weight' => isset($order_row['weight']) ? $order_row['weight'] : '0',
                     'height' => isset($order_row['height']) ? $order_row['height'] : '0',
                     'breadth' => isset($order_row['breadth']) ? $order_row['breadth'] : '0',
